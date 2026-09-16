@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NBA Favorite Comebacks — Dashboard</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: #eef3f8; color: #1f2d3d;
+    font-family: "Segoe UI", Verdana, Tahoma, sans-serif; font-size: 14px;
+  }
+  .header {
+    background: linear-gradient(to bottom, #7fb2e8 0%, #3d85c6 48%, #2b6cb0 52%, #3d85c6 100%);
+    color: #fff; padding: 18px 24px; border-bottom: 1px solid #1e4e79;
+    text-shadow: 0 1px 2px rgba(0,0,0,.35);
+  }
+  .header h1 { margin: 0; font-size: 22px; letter-spacing: .3px; }
+  .header p { margin: 4px 0 0; font-size: 12.5px; opacity: .92; }
+  .header a { color: #ffedb3; }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 16px 16px 40px; }
+  .toolbar {
+    background: #fff; border: 1px solid #cfdae7; border-radius: 10px;
+    padding: 10px 14px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
+    box-shadow: 0 1px 3px rgba(30,60,90,.08);
+  }
+  .toolbar label { font-size: 12px; color: #5b6b7c; }
+  select, button, input[type=file] { font-size: 13px; }
+  select {
+    border: 1px solid #b9c9db; border-radius: 6px; padding: 5px 8px; background: #f7fafd;
+  }
+  .btn {
+    border: 1px solid #1e4e79; border-radius: 16px; padding: 6px 16px; cursor: pointer;
+    background: linear-gradient(to bottom, #8fc1f2, #3d85c6); color: #fff; font-weight: 600;
+    text-shadow: 0 1px 1px rgba(0,0,0,.3); box-shadow: inset 0 1px 0 rgba(255,255,255,.5);
+  }
+  .btn:hover { filter: brightness(1.07); }
+  .btn.ghost {
+    background: linear-gradient(to bottom, #ffffff, #e2eaf2); color: #2b6cb0;
+    border-color: #9db8d2; text-shadow: none;
+  }
+  .tabs { display: inline-flex; border: 1px solid #9db8d2; border-radius: 16px; overflow: hidden; }
+  .tabs button {
+    border: 0; padding: 6px 16px; cursor: pointer; font-weight: 600; color: #2b6cb0;
+    background: linear-gradient(to bottom, #ffffff, #e2eaf2);
+  }
+  .tabs button.active {
+    background: linear-gradient(to bottom, #ffa733, #f07c00); color: #fff;
+    text-shadow: 0 1px 1px rgba(0,0,0,.3);
+  }
+  .kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 14px 0; }
+  @media (max-width: 760px) { .kpis { grid-template-columns: repeat(2, 1fr); } }
+  .kpi {
+    background: #fff; border: 1px solid #cfdae7; border-radius: 10px; padding: 12px 14px;
+    box-shadow: 0 1px 3px rgba(30,60,90,.08);
+  }
+  .kpi .v { font-size: 26px; font-weight: 700; color: #1e4e79; }
+  .kpi .v small { font-size: 13px; color: #5b6b7c; font-weight: 400; }
+  .kpi .l { font-size: 12px; color: #5b6b7c; margin-top: 2px; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  @media (max-width: 860px) { .grid { grid-template-columns: 1fr; } }
+  .card {
+    background: #fff; border: 1px solid #cfdae7; border-radius: 10px; padding: 14px 16px;
+    box-shadow: 0 1px 3px rgba(30,60,90,.08);
+  }
+  .card h2 { margin: 0 0 4px; font-size: 15px; color: #1e4e79; }
+  .card .sub { font-size: 12px; color: #5b6b7c; margin-bottom: 10px; }
+  .bar-row { display: grid; grid-template-columns: 118px 1fr 118px; gap: 8px; align-items: center; margin: 7px 0; font-size: 12.5px; }
+  .bar-track { background: #e6edf4; border-radius: 6px; height: 20px; position: relative; overflow: hidden; border: 1px solid #d3dfee; }
+  .bar-fill { height: 100%; border-radius: 5px; background: linear-gradient(to bottom, #8fc1f2, #2b6cb0); }
+  .bar-fill.orange { background: linear-gradient(to bottom, #ffbe5c, #f07c00); }
+  .bar-fill.green { background: linear-gradient(to bottom, #9ccc8f, #3d8b37); }
+  .bar-row .num { text-align: right; color: #1e4e79; }
+  .bar-row .lbl { color: #33475c; }
+  table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  th { background: linear-gradient(to bottom, #f2f6fa, #dde7f1); color: #1e4e79; text-align: left; }
+  th, td { border: 1px solid #d7e1ec; padding: 6px 8px; }
+  tr:nth-child(even) td { background: #f6f9fc; }
+  td.n, th.n { text-align: right; }
+  .pill { display: inline-block; padding: 1px 9px; border-radius: 10px; font-size: 11.5px; font-weight: 600; }
+  .pill.win { background: #e2f2e0; color: #2c6e2a; border: 1px solid #9ccc8f; }
+  .pill.loss { background: #fde7e7; color: #a33; border: 1px solid #e5a9a9; }
+  .note { font-size: 12px; color: #5b6b7c; background: #fffbe8; border: 1px solid #e8d98a; border-radius: 8px; padding: 8px 12px; margin: 12px 0; }
+  .pull { background: #fff; border: 1px solid #cfdae7; border-radius: 10px; padding: 10px 14px; margin: 12px 0; box-shadow: 0 1px 3px rgba(30,60,90,.08); }
+  .pull .row { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+  .pull .t { font-size: 13px; font-weight: 700; color: #1e4e79; }
+  .pull .s { font-size: 12px; color: #5b6b7c; }
+  .pull .track { background: #e6edf4; border: 1px solid #d3dfee; border-radius: 8px; height: 22px; overflow: hidden; margin-top: 8px; position: relative; }
+  .pull .fill { height: 100%; width: 0%; border-radius: 7px; background: linear-gradient(to bottom, #8fc1f2, #2b6cb0); transition: width .5s; }
+  .pull .fill.done { background: linear-gradient(to bottom, #9ccc8f, #3d8b37); }
+  .pull .pct { position: absolute; right: 8px; top: 2px; font-size: 12px; font-weight: 700; color: #1e4e79; }
+  .pull .steps { display: flex; gap: 12px; margin-top: 6px; font-size: 12px; color: #5b6b7c; flex-wrap: wrap; }
+  .pull .steps b { color: #1e4e79; }
+  .footer { text-align: center; color: #8aa0b4; font-size: 11.5px; margin-top: 18px; }
+  #games { max-height: 320px; overflow: auto; border: 1px solid #d7e1ec; border-radius: 6px; }
+  .mx { min-width: 640px; }
+  .mx th, .mx td { text-align: center; padding: 7px 6px; font-size: 12.5px; }
+  .mx th:first-child, .mx td:first-child { text-align: left; white-space: nowrap; }
+  .mx td small { color: #5b6b7c; font-weight: 400; }
+  .mx td.empty { background: #f1f4f8 !important; color: #9db0c2; }
+  .sim-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px 16px; margin: 10px 0; }
+  .sim-ctl label { font-size: 12px; color: #5b6b7c; display: block; margin-bottom: 2px; }
+  .sim-ctl output { font-weight: 700; color: #1e4e79; }
+  .sim-ctl input[type=range] { width: 100%; accent-color: #2b6cb0; }
+  .sim-out { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-top: 10px; }
+  .sim-box { background: #f6f9fc; border: 1px solid #d7e1ec; border-radius: 8px; padding: 8px 10px; }
+  .sim-box .v { font-size: 20px; font-weight: 700; color: #1e4e79; }
+  .sim-box .l { font-size: 11.5px; color: #5b6b7c; }
+  .verdict { display: inline-block; padding: 3px 14px; border-radius: 12px; font-weight: 700; font-size: 13px; }
+  .verdict.pos { background: #e2f2e0; color: #2c6e2a; border: 1px solid #9ccc8f; }
+  .verdict.neg { background: #fde7e7; color: #a33; border: 1px solid #e5a9a9; }
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>🏀 NBA Favorite Comebacks</h1>
+  <p>How often does the pre-game favorite trail at Q1 / Half / Q3 — and still win? &nbsp;·&nbsp; light &amp; simple</p>
+</div>
+<div class="wrap">
+
+  <div class="toolbar">
+    <span><label>Season</label><br><select id="season"><option value="">All seasons</option></select></span>
+    <span><label>Checkpoint</label><br>
+      <span class="tabs" id="cptabs">
+        <button data-nq="1">End Q1</button>
+        <button data-nq="2" class="active">Halftime</button>
+        <button data-nq="3">End Q3</button>
+      </span>
+    </span>
+    <span style="flex:1"></span>
+    <button class="btn ghost" id="refresh">↻ Reload</button>
+  </div>
+
+  <div class="note" id="datanote">Loading…</div>
+
+  <div class="pull" id="pull">
+    <div class="row"><div class="t" id="pullTitle">📥 3-season data pull</div><div class="s" id="pullEta"></div></div>
+    <div class="track"><div class="fill" id="pullFill"></div><div class="pct" id="pullPct">–</div></div>
+    <div class="steps"><span>🗓 League days <b id="pullDays">–</b></span><span>🏀 Games <b id="pullGames">–</b></span><span>💰 Odds <b id="pullOdds">–</b></span><span id="pullUpd"></span></div>
+  </div>
+
+  <div class="card" style="margin-top:12px">
+    <h2>🎰 Strategy simulator — is this bet +EV?</h2>
+    <div class="sub">Set your entry rule + the market price you can get. Win rate comes from the live historical data below (regular-season only).</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:6px">
+      <button class="btn ghost" data-preset="1,8,9">🔥 Q1 · ≥8 · ≤9 (81%, n=57)</button>
+      <button class="btn ghost" data-preset="1,8,12">💪 Q1 · ≥8 · ≤12 (83%, n=63)</button>
+      <button class="btn ghost" data-preset="2,8,6">🎯 Half · ≥8 · ≤6 (80%, n=30)</button>
+    </div>
+    <div class="sim-grid">
+      <div class="sim-ctl"><label>Checkpoint <output id="oCp">End of Q1</output></label>
+        <input type="range" id="sCp" min="1" max="3" step="1" value="1"></div>
+      <div class="sim-ctl"><label>Min pre-game spread <output id="oSp">8.0</output></label>
+        <input type="range" id="sSp" min="1" max="12" step="0.5" value="8"></div>
+      <div class="sim-ctl"><label>Max deficit to bet <output id="oDef">9 pts</output></label>
+        <input type="range" id="sDef" min="1" max="20" step="1" value="9"></div>
+      <div class="sim-ctl"><label>Market price (YES ¢) <output id="oPx">45¢</output></label>
+        <input type="range" id="sPx" min="5" max="95" step="1" value="45"></div>
+      <div class="sim-ctl"><label>Fee per $1 <output id="oFee">2¢</output></label>
+        <input type="range" id="sFee" min="0" max="10" step="0.5" value="2"></div>
+      <div class="sim-ctl"><label>Stake per bet <output id="oStake">$10</output></label>
+        <input type="range" id="sStake" min="1" max="100" step="1" value="10"></div>
+    </div>
+    <div class="sim-out">
+      <div class="sim-box"><div class="v" id="simN">–</div><div class="l">Qualifying games (hist)</div></div>
+      <div class="sim-box"><div class="v" id="simW">–</div><div class="l">Historical win rate</div></div>
+      <div class="sim-box"><div class="v" id="simEV">–</div><div class="l">EV per $1 staked</div></div>
+      <div class="sim-box"><div class="v" id="simTot">–</div><div class="l">Hist. profit on stake × N</div></div>
+      <div class="sim-box"><div class="v" id="simEdge">–</div><div class="l">Edge vs market (pp)</div></div>
+      <div class="sim-box"><div class="v"><span class="verdict neg" id="simVerdict">–</span></div><div class="l">Verdict</div></div>
+    </div>
+  </div>
+
+  <div class="kpis">
+    <div class="kpi"><div class="v" id="kGames">–</div><div class="l">Games with a listed favorite</div></div>
+    <div class="kpi"><div class="v" id="kFavWin">–</div><div class="l">Favorite wins outright</div></div>
+    <div class="kpi"><div class="v" id="kTrail">–</div><div class="l" id="kTrailL">Trailing at halftime</div></div>
+    <div class="kpi"><div class="v" id="kCome">–</div><div class="l" id="kComeL">…and still wins (comeback)</div></div>
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <h2 id="tState">Where is the favorite at halftime?</h2>
+      <div class="sub">Share of games leading / tied / trailing → and how often each still wins.</div>
+      <div id="stateBars"></div>
+    </div>
+    <div class="card">
+      <h2 id="tDef">Comeback rate by deficit</h2>
+      <div class="sub">Favorite win % when trailing by X points at the checkpoint.</div>
+      <div id="defBars"></div>
+    </div>
+    <div class="card">
+      <h2>Comeback by how big a favorite? ⭐</h2>
+      <div class="sub">Closing spread buckets (|spread|). “Trail” = behind at checkpoint · “Comeback” = trailed yet won.</div>
+      <div id="spreadBars"></div>
+    </div>
+    <div class="card">
+      <h2>Favorite win rate by spread bucket</h2>
+      <div class="sub">Bigger favorites win more — but do they come back more?</div>
+      <div id="spreadTable"></div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:12px">
+    <h2 id="tMatrix">Comeback % by spread × deficit</h2>
+    <div class="sub" id="tMatrixSub">Each cell: favorite win % when trailing by that much at the checkpoint (n = trailing games). Green = comeback-prone, red = rarely.</div>
+    <div id="games" style="max-height:none"><div id="matrixTable"></div></div>
+  </div>
+
+  <div class="card" style="margin-top:12px">
+    <h2>Recent games <span style="font-weight:400;color:#5b6b7c" id="gamesCount"></span></h2>
+    <div class="sub">Favorite highlighted · deficit shown at selected checkpoint (negative = trailing).</div>
+    <div id="games"><table>
+      <thead><tr><th>Date</th><th>Matchup</th><th>Fav (spread)</th><th class="n">Q1</th><th class="n">Half</th><th class="n">Q3</th><th class="n">Final</th><th>Result</th></tr></thead>
+      <tbody id="gamesBody"></tbody>
+    </table></div>
+  </div>
+
+  <div class="footer">ESPN scoreboard + closing moneyline (Caesars preferred) · live pull, no build step</div>
+</div>
+
+<script>
+let ROWS = [], NQ = 2, SEASON = "";
+const CP = {1: "End of Q1", 2: "Halftime", 3: "End of Q3"};
+
+function num(x) { const v = parseFloat(x); return isNaN(v) ? null : v; }
+
+function parseCSV(text) {
+  const lines = text.trim().split(/\r?\n/);
+  const head = lines[0].split(",");
+  return lines.slice(1).map(ln => {
+    // simple split (our files have no quoted commas except details, which we ignore)
+    const cells = ln.split(",");
+    const o = {};
+    head.forEach((h, i) => o[h.trim()] = (cells[i] || "").trim());
+    return o;
+  });
+}
+
+function clean(rows) {
+  const out = [];
+  for (const r of rows) {
+    if (r.fav !== "HOME" && r.fav !== "AWAY") continue;
+    const q = ["home_q1","home_q2","home_q3","home_q4","away_q1","away_q2","away_q3","away_q4","home_final","away_final"].map(k => num(r[k]));
+    if (q.some(v => v === null)) continue;
+    out.push({
+      date: r.date || "", season: r.season || "", seasontype: r.seasontype || "",
+      home: r.home, away: r.away,
+      hq: q.slice(0,4), aq: q.slice(4,8), hf: q[8], af: q[9],
+      homeWon: /true/i.test(r.home_winner || ""),
+      fav: r.fav, spread: num(r.spread), details: r.details || ""
+    });
+  }
+  return out;
+}
+
+function favLine(g) {
+  // returns {favCum:[q1,half,q3], dogCum, won, deficit@nq}
+  const F = g.fav === "HOME" ? g.hq : g.aq;
+  const D = g.fav === "HOME" ? g.aq : g.hq;
+  const cum = a => [a[0], a[0]+a[1], a[0]+a[1]+a[2]];
+  const fc = cum(F), dc = cum(D);
+  const won = g.fav === "HOME" ? g.homeWon : !g.homeWon;
+  return { fc, dc, won };
+}
+
+function spreadBucket(s) {
+  if (s === null || s === undefined) return "Unknown";
+  const a = Math.abs(s);
+  if (a < 3) return "1–2.5";
+  if (a < 5) return "3–4.5";
+  if (a < 8) return "5–7.5";
+  if (a < 12) return "8–11.5";
+  return "12+";
+}
+const BUCKETS = ["1–2.5","3–4.5","5–7.5","8–11.5","12+"];
+
+function filtered() { return SEASON ? ROWS.filter(g => g.season === SEASON) : ROWS; }
+
+function pct(a,b){ return b ? (100*a/b) : 0; }
+
+function bar(label, frac, text, cls) {
+  return `<div class="bar-row"><div class="lbl">${label}</div>` +
+    `<div class="bar-track"><div class="bar-fill ${cls||""}" style="width:${(100*frac).toFixed(1)}%"></div></div>` +
+    `<div class="num">${text}</div></div>`;
+}
+
+function render() {
+  const rows = filtered();
+  const n = rows.length;
+  if (n === 0) {
+    ["kGames","kFavWin","kTrail","kCome"].forEach(id => document.getElementById(id).textContent = "–");
+    document.getElementById("stateBars").innerHTML = `<div class="sub">No games with odds yet — stats appear as the pull lands.</div>`;
+    document.getElementById("defBars").innerHTML = "";
+    document.getElementById("spreadBars").innerHTML = "";
+    document.getElementById("spreadTable").innerHTML = "";
+    document.getElementById("matrixTable").innerHTML = "";
+    document.getElementById("gamesBody").innerHTML = "";
+    document.getElementById("gamesCount").textContent = "";
+    return;
+  }
+  let favWins = 0, trail = 0, trailWin = 0, trailDef = 0, lead = 0, leadWin = 0, tied = 0, tiedWin = 0;
+  const defB = [[1,3],[4,6],[7,9],[10,12],[13,99]].map(() => ({g:0,w:0}));
+  const sp = {}; BUCKETS.forEach(b => sp[b] = {g:0, w:0, t:0, tw:0});
+  // matrix: spread bucket x deficit bucket -> {g: trailing games, w: fav wins}
+  const DEFR = [[1,3],[4,6],[7,9],[10,12],[13,99]];
+  const mx = {}; BUCKETS.forEach(b => mx[b] = DEFR.map(() => ({g:0,w:0})));
+  rows.forEach(g => {
+    const {fc, dc, won} = favLine(g);
+    if (won) favWins++;
+    const diff = fc[NQ-1] - dc[NQ-1];
+    if (diff < 0) { trail++; trailDef += -diff; if (won) trailWin++; }
+    else if (diff === 0) { tied++; if (won) tiedWin++; }
+    else { lead++; if (won) leadWin++; }
+    const deficit = dc[NQ-1] - fc[NQ-1];
+    if (deficit >= 1) {
+      const bi = deficit<=3?0:deficit<=6?1:deficit<=9?2:deficit<=12?3:4;
+      defB[bi].g++; if (won) defB[bi].w++;
+    }
+    const b = spreadBucket(g.spread);
+    if (sp[b]) {
+      sp[b].g++; if (won) sp[b].w++;
+      if (diff < 0) {
+        sp[b].t++; if (won) sp[b].tw++;
+        if (deficit >= 1) {
+          const bi = deficit<=3?0:deficit<=6?1:deficit<=9?2:deficit<=12?3:4;
+          mx[b][bi].g++; if (won) mx[b][bi].w++;
+        }
+      }
+    }
+  });
+
+  document.getElementById("kGames").textContent = n.toLocaleString();
+  document.getElementById("kFavWin").innerHTML = `${pct(favWins,n).toFixed(1)}<small>% (${favWins.toLocaleString()}/${n.toLocaleString()})</small>`;
+  document.getElementById("kTrail").innerHTML = `${pct(trail,n).toFixed(1)}<small>% (${trail.toLocaleString()}, avg −${(trailDef/(trail||1)).toFixed(1)})</small>`;
+  document.getElementById("kCome").innerHTML = `${pct(trailWin,trail).toFixed(1)}<small>% (${trailWin.toLocaleString()}/${trail.toLocaleString()})</small>`;
+  document.getElementById("kTrailL").textContent = `Trailing at ${CP[NQ].toLowerCase()}`;
+  document.getElementById("kComeL").textContent = `…and still wins (comeback)`;
+  document.getElementById("tState").textContent = `Where is the favorite at ${CP[NQ].toLowerCase()}?`;
+  document.getElementById("tDef").textContent = `Comeback rate by deficit — ${CP[NQ].toLowerCase()}`;
+
+  document.getElementById("stateBars").innerHTML =
+    bar(`⬆ Leading (${pct(lead,n).toFixed(1)}%)`, lead/n, `${pct(leadWin,lead).toFixed(1)}% win`, "green") +
+    bar(`➖ Tied (${pct(tied,n).toFixed(1)}%)`, tied/n, `${pct(tiedWin,tied).toFixed(1)}% win`, "") +
+    bar(`⬇ Trailing (${pct(trail,n).toFixed(1)}%)`, trail/n, `${pct(trailWin,trail).toFixed(1)}% win`, "orange");
+
+  const tags = ["1–3","4–6","7–9","10–12","13+"];
+  document.getElementById("defBars").innerHTML = defB.map((d,i) =>
+    bar(`Down ${tags[i]} (${d.g})`, d.g/n, `${pct(d.w,d.g).toFixed(1)}% win`, "orange")).join("");
+
+  document.getElementById("spreadBars").innerHTML = BUCKETS.map(b => {
+    const d = sp[b];
+    return bar(`${b} <small style="color:#8aa0b4">n=${d.g}</small>`, d.t/(d.g||1),
+      `trail ${pct(d.t,d.g).toFixed(0)}% → win ${pct(d.tw,d.t).toFixed(1)}%`, "orange");
+  }).join("");
+
+  document.getElementById("spreadTable").innerHTML =
+    `<table><thead><tr><th>Spread</th><th class="n">Games</th><th class="n">Fav win%</th><th class="n">Trail%</th><th class="n">Comeback%</th></tr></thead><tbody>` +
+    BUCKETS.map(b => { const d = sp[b];
+      return `<tr><td>${b}</td><td class="n">${d.g}</td><td class="n">${pct(d.w,d.g).toFixed(1)}%</td>` +
+      `<td class="n">${pct(d.t,d.g).toFixed(1)}%</td><td class="n"><b>${pct(d.tw,d.t).toFixed(1)}%</b></td></tr>`;
+    }).join("") + `</tbody></table>`;
+
+  // spread x deficit comeback matrix (heat-shaded cells)
+  document.getElementById("tMatrix").textContent = `Comeback % by spread × deficit — ${CP[NQ].toLowerCase()}`;
+  const heat = p => { // green (>=60) -> pale -> red (<30)
+    if (p === null) return "";
+    const c = p >= 60 ? `background:rgba(61,139,55,${(0.12 + 0.5*(p-60)/40).toFixed(2)})`
+      : p >= 40 ? `background:rgba(240,124,0,${(0.08 + 0.25*(60-p)/20).toFixed(2)})`
+      : `background:rgba(180,40,40,${(0.10 + 0.35*(40-p)/40).toFixed(2)})`;
+    return c;
+  };
+  document.getElementById("matrixTable").innerHTML =
+    `<table class="mx"><thead><tr><th>Spread ↓ · Deficit →</th>` +
+    tags.map(t => `<th>Down ${t}</th>`).join("") + `</tr></thead><tbody>` +
+    BUCKETS.map(b => `<tr><td><b>${b}</b></td>` + mx[b].map(d => {
+        if (!d.g) return `<td class="empty">–</td>`;
+        const p = pct(d.w, d.g);
+        return `<td style="${heat(p)}"><b>${p.toFixed(0)}%</b><br><small>${d.w}/${d.g}</small></td>`;
+      }).join("") + `</tr>`).join("") + `</tbody></table>`;
+
+  const recent = [...rows].sort((a,b) => (a.date<b.date?1:-1)).slice(0, 60);
+  document.getElementById("gamesCount").textContent = `— latest ${recent.length} of ${n}`;
+  document.getElementById("gamesBody").innerHTML = recent.map(g => {
+    const {fc, dc, won} = favLine(g);
+    const q = k => `${(g.fav==="HOME"?g.hq:g.aq)[k]}–${(g.fav==="HOME"?g.aq:g.hq)[k]}`;
+    const fin = g.fav==="HOME" ? `${g.hf}–${g.af}` : `${g.af}–${g.hf}`;
+    const d = (v) => (v>0?`+${v}`:`${v}`);
+    const favTeam = g.fav==="HOME" ? g.home : g.away;
+    const sp = (g.spread===null?"":Math.abs(g.spread).toFixed(1));
+    return `<tr><td>${g.date}</td><td>${g.away} @ ${g.home}</td><td><b>${favTeam}</b> (−${sp})</td>` +
+      `<td class="n">${d(fc[0]-dc[0])}</td><td class="n">${d(fc[1]-dc[1])}</td><td class="n">${d(fc[2]-dc[2])}</td>` +
+      `<td class="n">${fin}</td><td><span class="pill ${won?"win":"loss"}">${won?"WON":"LOST"}</span></td></tr>`;
+  }).join("");
+  simulate();
+}
+
+function simulate() {
+  // Entry rule from sliders; win rate from live regular-season data only.
+  const cp = +document.getElementById("sCp").value;
+  const minSp = +document.getElementById("sSp").value;
+  const maxDef = +document.getElementById("sDef").value;
+  const px = +document.getElementById("sPx").value / 100;
+  const fee = +document.getElementById("sFee").value / 100;
+  const stake = +document.getElementById("sStake").value;
+  document.getElementById("oCp").textContent = CP[cp];
+  document.getElementById("oSp").textContent = minSp.toFixed(1);
+  document.getElementById("oDef").textContent = maxDef + " pts";
+  document.getElementById("oPx").textContent = document.getElementById("sPx").value + "¢";
+  document.getElementById("oFee").textContent = document.getElementById("sFee").value + "¢";
+  document.getElementById("oStake").textContent = "$" + stake;
+  const rows = filtered().filter(g => (g.seasontype || "").includes("regular"));
+  let n = 0, w = 0;
+  rows.forEach(g => {
+    if (g.spread === null || Math.abs(g.spread) < minSp) return;
+    const {fc, dc, won} = favLine(g);
+    const def = dc[cp-1] - fc[cp-1];
+    if (def < 1 || def > maxDef) return;
+    n++; if (won) w++;
+  });
+  const p = n ? w / n : 0;
+  // YES at px: win -> +(1-px), lose -> -px, minus fee each way
+  const ev = n ? p * (1 - px) - (1 - p) * px - fee : 0;
+  const edge = (p - px) * 100;
+  document.getElementById("simN").textContent = n ? n.toLocaleString() : "–";
+  document.getElementById("simW").textContent = n ? `${(100*p).toFixed(1)}% (${w}/${n})` : "–";
+  document.getElementById("simEV").textContent = n ? `${ev >= 0 ? "+" : ""}${(ev*100).toFixed(1)}¢` : "–";
+  document.getElementById("simTot").textContent = n ? `${ev*stake*n >= 0 ? "+" : ""}$${(ev*stake*n).toFixed(0)}` : "–";
+  document.getElementById("simEdge").textContent = n ? `${edge >= 0 ? "+" : ""}${edge.toFixed(1)}pp` : "–";
+  const v = document.getElementById("simVerdict");
+  if (!n) { v.textContent = "NO DATA"; v.className = "verdict neg"; }
+  else if (n < 20) { v.textContent = "TOO THIN (n<20)"; v.className = "verdict neg"; }
+  else if (ev > 0) { v.textContent = "+EV — BET"; v.className = "verdict pos"; }
+  else { v.textContent = "−EV — PASS"; v.className = "verdict neg"; }
+}
+["sCp","sSp","sDef","sPx","sFee","sStake"].forEach(id =>
+  document.getElementById(id).addEventListener("input", simulate));
+document.querySelectorAll("[data-preset]").forEach(b =>
+  b.addEventListener("click", () => {
+    const [cp, sp, df] = b.dataset.preset.split(",").map(Number);
+    document.getElementById("sCp").value = cp;
+    document.getElementById("sSp").value = sp;
+    document.getElementById("sDef").value = df;
+    simulate();
+  }));
+
+let dataNote = "";
+async function loadLive(silent) {
+  const note = document.getElementById("datanote");
+  try {
+    const res = await fetch("../data/games.csv", {cache: "no-store"});
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const text = await res.text();
+    const rows = clean(parseCSV(text));
+    const seasons = [...new Set(rows.map(g => g.season))].sort();
+    const sel = document.getElementById("season");
+    const prev = SEASON;
+    sel.innerHTML = `<option value="">All seasons</option>` +
+      seasons.map(s => `<option>${s}</option>`).join("");
+    SEASON = seasons.includes(prev) ? prev : "";
+    sel.value = SEASON;
+    const grew = rows.length !== ROWS.length;
+    ROWS = rows;
+    dataNote = `Live: <b>${ROWS.length.toLocaleString()}</b> games with closing odds pulled so far — numbers update as the pull progresses.`;
+    note.innerHTML = (silent && !grew) ? note.innerHTML : dataNote;
+    render();
+    return true;
+  } catch (e) {
+    if (!silent || ROWS.length === 0) {
+      note.innerHTML = `⏳ Pull in progress — no games with odds yet. Stats appear automatically as data lands. (If the pull isn't running: <code>python nba_favorites/fetch.py</code>.)`;
+    }
+    return false;
+  }
+}
+
+document.getElementById("refresh").addEventListener("click", () => loadLive(false));
+document.getElementById("season").addEventListener("change", e => { SEASON = e.target.value; render(); });
+document.getElementById("cptabs").addEventListener("click", e => {
+  const b = e.target.closest("button"); if (!b) return;
+  document.querySelectorAll("#cptabs button").forEach(x => x.classList.remove("active"));
+  b.classList.add("active"); NQ = +b.dataset.nq; render();
+});
+async function pollProgress() {
+  try {
+    const res = await fetch("../data/progress.json", {cache: "no-store"});
+    if (!res.ok) throw 0;
+    const p = await res.json();
+    const dd = p.day_done || 0, dt2 = p.day_total || 1;
+    const od = p.odds_done || 0, ot = p.odds_total || 0;
+    // overall: league days = first 20%, odds = remaining 80%
+    let frac, label;
+    if (p.phase === "done") { frac = 1; label = "✅ Pull complete"; }
+    else if (p.phase === "both") {
+      const dayFrac = dt2 ? dd / dt2 : 0;
+      const oddsFrac = ot ? od / ot : 0;
+      frac = 0.2 * dayFrac + 0.8 * oddsFrac;
+      label = "🗓 League days + 💰 odds (in parallel)…";
+    }
+    else if (p.phase === "odds" && ot > 0) { frac = 0.2 + 0.8 * (od / ot); label = "💰 Fetching closing odds…"; }
+    else { frac = 0.2 * (dd / dt2); label = "🗓 Walking league days…"; }
+    document.getElementById("pullFill").style.width = (100 * frac).toFixed(1) + "%";
+    document.getElementById("pullFill").classList.toggle("done", p.phase === "done");
+    document.getElementById("pullPct").textContent = (100 * frac).toFixed(0) + "%";
+    document.getElementById("pullTitle").textContent = label;
+    document.getElementById("pullDays").textContent = `${dd.toLocaleString()}/${dt2.toLocaleString()}`;
+    document.getElementById("pullGames").textContent = (p.games_found || 0).toLocaleString();
+    document.getElementById("pullOdds").textContent = ot ? `${od.toLocaleString()}/${ot.toLocaleString()}` : "–";
+    document.getElementById("pullUpd").textContent = p.updated ? `updated ${p.updated.replace("T"," ").slice(0,19)}Z` : "";
+    document.getElementById("pullEta").textContent = p.phase === "done" ? "" : "auto-refreshes every 5s";
+    await loadLive(true); // refresh stats with whatever has landed
+    if (p.phase === "done") {
+      document.getElementById("pull").style.display = "none";
+      document.getElementById("datanote").innerHTML =
+        `✅ Pull complete — <b>${ROWS.length.toLocaleString()}</b> games with closing odds.`;
+      return; // stop polling
+    }
+  } catch (e) {
+    document.getElementById("pullTitle").textContent = "📥 3-season data pull — not started yet";
+    document.getElementById("pullPct").textContent = "–";
+  }
+  setTimeout(pollProgress, 5000);
+}
+loadLive(false);
+pollProgress();
+</script>
+</body>
+</html>

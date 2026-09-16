@@ -1,0 +1,15 @@
+[Unit]
+Description=NBA favorites odds pull (resumes from games.csv)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ec2-user
+WorkingDirectory=/opt/nba-favorites
+ExecStart=/usr/bin/python3 /opt/nba-favorites/fetch.py
+Restart=on-failure
+RestartSec=60
+
+[Install]
+WantedBy=multi-user.target

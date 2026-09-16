@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+*.db
+*.db-wal
+*.db-shm
+data/walked.json
+data/games.json
+data/progress.json
+data/games-backup.csv
+data/games-ec2.csv
+deploy/staging/
+.venv/
