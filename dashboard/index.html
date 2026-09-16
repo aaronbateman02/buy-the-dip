@@ -151,6 +151,8 @@
       <button class="btn ghost" data-preset="2,8,6">🎯 Half · ≥8 · ≤6 (80%, n=30)</button>
     </div>
     <div class="sim-grid">
+      <div class="sim-ctl"><label>Min bets / season <output id="oFreq">30</output></label>
+        <input type="range" id="sFreq" min="5" max="150" step="5" value="30"></div>
       <div class="sim-ctl"><label>Checkpoint <output id="oCp">End of Q1</output></label>
         <input type="range" id="sCp" min="1" max="3" step="1" value="1"></div>
       <div class="sim-ctl"><label>Min pre-game spread <output id="oSp">8.0</output></label>
@@ -422,15 +424,20 @@ function wilsonLo(w, n, z) {
 
 let bestLocked = false;
 function findBest() {
-  // Sweep every entry-rule combo; rank by Wilson-90 lower bound (conservative),
-  // require n>=20. Lock sliders to the winner once (first load), then banner only.
+  // Sweep every entry-rule combo; rank by Wilson-90 lower bound (conservative).
+  // Minimum sample = Min-bets-/season slider x seasons in view.
+  // Lock sliders to the winner once (first load / freq change), then banner only.
   const rows = filtered().filter(g => (g.seasontype || "").includes("regular"));
+  const minPer = +document.getElementById("sFreq").value;
+  document.getElementById("oFreq").textContent = minPer;
+  const nSea = new Set(rows.map(g => g.season)).size || 1;
+  const need = Math.max(10, minPer * nSea);
   let best = null;
   for (const cp of [1, 2, 3]) {
     for (const minSp of [3, 5, 8, 10, 12]) {
       for (const maxDef of [3, 6, 9, 12]) {
         const s = ruleStats(rows, cp, minSp, maxDef);
-        if (s.n < 20) continue;
+        if (s.n < need) continue;
         const lo = wilsonLo(s.w, s.n);
         if (!best || lo > best.lo) best = {...s, cp, minSp, maxDef, lo};
       }
@@ -438,11 +445,11 @@ function findBest() {
   }
   const el = document.getElementById("bestBet");
   if (!best) {
-    el.innerHTML = `<span>🔍 Not enough regular-season data yet (need n≥20 in some setup).</span>`;
+    el.innerHTML = `<span>🔍 No setup meets ≥${minPer}/season (need n≥${need}). Lower the slider or wait for more data.</span>`;
     return;
   }
   el.innerHTML = `<span>🏆 <b>Best default: ${CP[best.cp]} · spread ≥${best.minSp} · down ≤${best.maxDef}</b> — ` +
-    `${(100*best.p).toFixed(1)}% win (${best.w}/${best.n}), conservative floor ${(100*best.lo).toFixed(1)}%</span>` +
+    `${(100*best.p).toFixed(1)}% win (${best.w}/${best.n}, ~${(best.n/nSea).toFixed(0)}/season), conservative floor ${(100*best.lo).toFixed(1)}%</span>` +
     `<button class="btn" id="applyBest">Apply to sliders</button>`;
   document.getElementById("applyBest").addEventListener("click", () => {
     document.getElementById("sCp").value = best.cp;
@@ -491,6 +498,11 @@ function simulate() {
 }
 ["sCp","sSp","sDef","sPx","sFee","sStake"].forEach(id =>
   document.getElementById(id).addEventListener("input", simulate));
+document.getElementById("sFreq").addEventListener("input", () => {
+  bestLocked = false;
+  findBest();
+  simulate();
+});
 document.querySelectorAll("[data-preset]").forEach(b =>
   b.addEventListener("click", () => {
     const [cp, sp, df] = b.dataset.preset.split(",").map(Number);
